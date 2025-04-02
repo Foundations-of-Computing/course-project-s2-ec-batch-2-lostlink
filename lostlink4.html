@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LOSTLINK</title>
+    <style>
+        body {
+            background-color: rgba(142, 201, 201, 0.568);
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #333;
+            padding: 10px 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        nav {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+            font-weight: bold;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .container {
+            width: 50%;
+            margin: 80px auto 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input, select {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            display: none;
+        }
+        img {
+            max-width: 100px;
+            height: auto;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>LOSTLINK</h1>
+        </div>
+        <nav>
+            <a href="#" id="homeLink">Home</a>
+            <a href="#" id="viewLink">View Submitted Items</a>
+        </nav>
+    </header>
+
+    <h2>Report a Lost or Found Item</h2>
+
+    <div class="container" id="formContainer">
+        <form id="lostForm">
+            <input type="text" name="name" placeholder="Your Name" required><br>
+            <input type="number" name="phone" placeholder="Your Phone Number" required><br>
+            
+            <label for="status">Item Status:</label>
+            <select name="status" id="status" required>
+                <option value="lost">Lost</option>
+                <option value="found">Found</option>
+            </select><br>
+
+            <input type="text" name="item_name" placeholder="Item Name" required><br>
+            
+            <label>Upload Image of the Item:</label>
+            <input type="file" name="item_image" accept="image/*" required><br>
+            
+            <input type="text" name="description" placeholder="Description of the Item" required><br>
+            <input type="text" name="location" placeholder="Location Found/Lost"><br>
+            
+            <input type="submit" value="Submit Item">
+        </form>
+
+        <div class="result" id="resultDisplay"></div>
+    </div>
+
+    <div class="container" id="viewContainer" style="display: none;">
+        <h2>Submitted Items</h2>
+        <div id="submittedItems"></div>
+    </div>
+
+    <script>       
+        function convertToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+        document.getElementById('lostForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const imageFile = formData.get('item_image');
+
+            const imageBase64 = await convertToBase64(imageFile);
+
+            const data = {
+                name: formData.get('name'),
+                phone: formData.get('phone'),
+                status: formData.get('status'),
+                itemName: formData.get('item_name'),
+                description: formData.get('description'),
+                location: formData.get('location'),
+                image: imageBase64
+            };
+            const resultDisplay = document.getElementById('resultDisplay');
+            resultDisplay.innerHTML = `
+                <h3>Item Submitted Successfully!</h3>
+                <p><strong>Name:</strong> ${data.name}</p>
+                <p><strong>Phone:</strong> ${data.phone}</p>
+                <p><strong>Status:</strong> ${data.status}</p>
+                <p><strong>Item Name:</strong> ${data.itemName}</p>
+                <p><strong>Description:</strong> ${data.description}</p>
+                <p><strong>Location:</strong> ${data.location || 'Not Provided'}</p>
+                <p><strong>Image:</strong><br><img src="${data.image}" alt="Item Image"></p>
+            `;
+            resultDisplay.style.display = 'block';
+            event.target.reset();
+            const submittedItems = JSON.parse(localStorage.getItem('submittedItems')) || [];
+            submittedItems.push(data);
+            localStorage.setItem('submittedItems', JSON.stringify(submittedItems));
+        });
+        document.getElementById('homeLink').addEventListener('click', function() {
+            document.getElementById('formContainer').style.display = 'block';
+            document.getElementById('viewContainer').style.display = 'none';
+        });
+
+        document.getElementById('viewLink').addEventListener('click', function() {
+            document.getElementById('formContainer').style.display = 'none';
+            document.getElementById('viewContainer').style.display = 'block';
+            displaySubmittedItems();
+        });       
+        function displaySubmittedItems() {
+            const submittedItems = JSON.parse(localStorage.getItem('submittedItems')) || [];
+            const submittedItemsContainer = document.getElementById('submittedItems');
+            submittedItemsContainer.innerHTML = '';
+
+            if (submittedItems.length === 0) {
+                submittedItemsContainer.innerHTML = '<p>No items submitted yet.</p>';
+                return;
+            }
+
+            submittedItems.forEach(item => {
+                submittedItemsContainer.innerHTML += `
+                    <div style="border: 1px solid #ccc; padding: 10px; margin: 10px; border-radius: 5px;">
+                        <p><strong>Name:</strong> ${item.name}</p>
+                        <p><strong>Phone:</strong> ${item.phone}</p>
+                        <p><strong>Status:</strong> ${item.status}</p>
+                        <p><strong>Item Name:</strong> ${item.itemName}</p>
+                        <p><strong>Description:</strong> ${item.description}</p>
+                        <p><strong>Location:</strong> ${item.location || 'Not Provided'}</p>
+                        <p><strong>Image:</strong><br><img src="${item.image}" alt="Item Image"></p>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
